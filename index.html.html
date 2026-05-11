@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestor CUD — Centro Neuros</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #faf7f2;
+    --surface:   #ffffff;
+    --surface2:  #f4f0ea;
+    --border:    #e2dbd0;
+    --text:      #2d2a24;
+    --text-dim:  #7a7060;
+    --text-faint:#b8ae9e;
+
+    --mint:      #72c4b0;
+    --mint-light:#e8f7f4;
+    --mint-mid:  #c2e8e1;
+
+    --lila:      #b8afd4;
+    --lila-light:#f0edf8;
+
+    --yellow:    #e8d96a;
+    --yellow-light:#fdf9e0;
+
+    --danger:    #d96060;
+    --danger-light:#fdeaea;
+    --warn:      #d99a40;
+    --warn-light:#fdf3e0;
+    --ok:        #72c4b0;
+    --ok-light:  #e8f7f4;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; min-height:100vh; }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0;
+    position: sticky; top:0; z-index:100;
+    box-shadow: 0 2px 12px rgba(114,196,176,.1);
+  }
+  .header-inner {
+    max-width:1400px; margin:0 auto;
+    padding: 14px 28px;
+    display:flex; align-items:center; gap:20px;
+  }
+  .logo-img { height: 52px; object-fit:contain; }
+  .header-divider {
+    width:1px; height:36px;
+    background: var(--border);
+  }
+  .header-title {
+    font-family:'Syne',sans-serif;
+    font-size:16px; font-weight:700;
+    color: var(--text);
+    line-height:1.2;
+  }
+  .header-title span { color: var(--mint); }
+  .header-sub { font-size:11px; color:var(--text-dim); margin-top:2px; }
+  .header-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .badge-alert {
+    background:var(--danger); color:#fff;
+    font-weight:700; font-size:12px;
+    border-radius:100px; padding:3px 12px;
+    display:none;
+  }
+  .badge-alert.visible { display:inline-block; }
+
+  /* MAIN */
+  main { padding:24px 28px; max-width:1400px; margin:0 auto; }
+
+  /* STATS */
+  .stats-row {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:14px; margin-bottom:24px;
+  }
+  .stat-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:18px 20px;
+    position:relative; overflow:hidden;
+  }
+  .stat-card::before {
+    content:''; position:absolute;
+    top:0; left:0; right:0; height:4px; border-radius:14px 14px 0 0;
+  }
+  .stat-card.mint::before   { background:var(--mint); }
+  .stat-card.danger::before { background:var(--danger); }
+  .stat-card.warn::before   { background:var(--warn); }
+  .stat-card.lila::before   { background:var(--lila); }
+  .stat-label { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); margin-bottom:8px; font-weight:600; }
+  .stat-num { font-family:'Syne',sans-serif; font-size:34px; font-weight:800; line-height:1; }
+  .stat-card.mint .stat-num   { color:var(--mint); }
+  .stat-card.danger .stat-num { color:var(--danger); }
+  .stat-card.warn .stat-num   { color:var(--warn); }
+  .stat-card.lila .stat-num   { color:var(--lila); }
+
+  /* TOOLBAR */
+  .toolbar {
+    display:flex; align-items:center; gap:8px;
+    margin-bottom:16px; flex-wrap:wrap;
+  }
+  .search-wrap { position:relative; flex:1; min-width:200px; max-width:320px; }
+  .search-wrap input {
+    width:100%;
+    background:var(--surface); border:1.5px solid var(--border);
+    color:var(--text); padding:9px 12px 9px 36px;
+    border-radius:10px; font-size:13px;
+    font-family:'DM Sans',sans-serif; outline:none;
+    transition:border-color .2s;
+  }
+  .search-wrap input:focus { border-color:var(--mint); }
+  .search-wrap .ico {
+    position:absolute; left:11px; top:50%;
+    transform:translateY(-50%); color:var(--text-faint); font-size:15px;
+    pointer-events:none;
+  }
+  .filter-btn {
+    background:var(--surface); border:1.5px solid var(--border);
+    color:var(--text-dim); padding:8px 14px; border-radius:10px;
+    cursor:pointer; font-size:12px; font-family:'DM Sans',sans-serif;
+    font-weight:500; transition:all .2s; white-space:nowrap;
+  }
+  .filter-btn:hover { border-color:var(--mint); color:var(--mint); background:var(--mint-light); }
+  .filter-btn.active { border-color:var(--mint); color:var(--mint); background:var(--mint-light); }
+  .filter-btn.danger.active { border-color:var(--danger); color:var(--danger); background:var(--danger-light); }
+  .filter-btn.warn.active { border-color:var(--warn); color:var(--warn); background:var(--warn-light); }
+
+  .btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:9px 16px; border-radius:10px;
+    font-size:13px; font-family:'DM Sans',sans-serif;
+    font-weight:500; cursor:pointer; border:none; transition:all .2s;
+  }
+  .btn-primary { background:var(--mint); color:#fff; }
+  .btn-primary:hover { background:#5db09c; }
+  .btn-admin {
+    background:var(--lila); color:#fff;
+  }
+  .btn-admin:hover { background:#9e93c2; }
+
+  /* TABLE */
+  .table-wrap {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; overflow:hidden;
+    box-shadow:0 2px 16px rgba(0,0,0,.04);
+  }
+  table { width:100%; border-collapse:collapse; }
+  thead tr {
+    background:var(--surface2); border-bottom:1.5px solid var(--border);
+  }
+  th {
+    padding:11px 14px; text-align:left;
+    font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.8px;
+    color:var(--text-dim); cursor:pointer; user-select:none;
+    white-space:nowrap;
+  }
+  th:hover { color:var(--mint); }
+  th.sorted { color:var(--mint); }
+  tbody tr { border-bottom:1px solid var(--border); transition:background .15s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:hover { background:var(--mint-light); }
+  td { padding:11px 14px; font-size:13px; vertical-align:middle; }
+  .nombre-cell { font-weight:600; color:var(--text); }
+  .turno-chip {
+    display:inline-flex; align-items:center; gap:4px;
+    margin-top:4px;
+    background:var(--mint-light); border:1px solid var(--mint-mid);
+    color:var(--mint); border-radius:100px;
+    font-size:11px; font-weight:600; padding:2px 8px;
+  }
+
+  /* BADGES */
+  .badge { display:inline-block; padding:2px 9px; border-radius:100px; font-size:11px; font-weight:700; letter-spacing:.3px; }
+  .badge-activo  { background:var(--mint-light);   color:var(--mint);   border:1px solid var(--mint-mid); }
+  .badge-baja    { background:var(--danger-light); color:var(--danger); border:1px solid #f5c0c0; }
+  .badge-proceso { background:var(--lila-light);   color:var(--lila);   border:1px solid #d4cee8; }
+  .badge-otro    { background:var(--surface2);     color:var(--text-dim); border:1px solid var(--border); }
+
+  /* DIAS CHIP */
+  .days-chip {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 10px; border-radius:100px;
+    font-size:12px; font-weight:700;
+  }
+  .days-ok     { background:var(--ok-light);     color:var(--ok); }
+  .days-warn   { background:var(--warn-light);   color:var(--warn); }
+  .days-danger { background:var(--danger-light); color:var(--danger); }
+  .days-expired { background:var(--surface2); color:var(--text-faint); }
+  .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .dot-ok     { background:var(--ok); }
+  .dot-warn   { background:var(--warn); animation:pulse-w 1.5s infinite; }
+  .dot-danger { background:var(--danger); animation:pulse-d 1.2s infinite; }
+  @keyframes pulse-w { 0%,100% { opacity:1;transform:scale(1); } 50% { opacity:.5;transform:scale(1.3); } }
+  @keyframes pulse-d { 0%,100% { opacity:1;transform:scale(1); } 50% { opacity:.4;transform:scale(1.5); } }
+
+  /* ACTION BTNS */
+  .action-btn {
+    background:none; border:none; color:var(--text-faint);
+    cursor:pointer; padding:4px; border-radius:6px;
+    transition:all .15s; font-size:15px;
+  }
+  .action-btn:hover { color:var(--text); background:var(--surface2); }
+  .action-btn.del:hover { color:var(--danger); }
+
+  /* MODAL */
+  .modal-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(45,42,36,.5); backdrop-filter:blur(4px);
+    z-index:200; align-items:center; justify-content:center;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:18px; padding:28px 32px;
+    width:520px; max-width:95vw; max-height:90vh;
+    overflow-y:auto; animation:modal-in .2s ease;
+    box-shadow:0 8px 40px rgba(0,0,0,.12);
+  }
+  @keyframes modal-in { from { opacity:0;transform:scale(.96) translateY(8px); } to { opacity:1;transform:none; } }
+  .modal-title {
+    font-family:'Syne',sans-serif; font-size:18px; font-weight:700;
+    margin-bottom:22px; display:flex; align-items:center; justify-content:space-between;
+    color:var(--text);
+  }
+  .modal-close {
+    background:none; border:none; color:var(--text-dim);
+    font-size:20px; cursor:pointer; padding:2px; border-radius:5px;
+  }
+  .modal-close:hover { color:var(--text); }
+  .form-group { margin-bottom:16px; }
+  .form-group label {
+    display:block; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.8px;
+    color:var(--text-dim); margin-bottom:6px;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width:100%; background:var(--surface2);
+    border:1.5px solid var(--border); color:var(--text);
+    padding:9px 12px; border-radius:10px;
+    font-size:13px; font-family:'DM Sans',sans-serif;
+    outline:none; transition:border-color .2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--mint); }
+  .form-group textarea { resize:vertical; min-height:70px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:22px; }
+  .btn-outline {
+    background:transparent; border:1.5px solid var(--border);
+    color:var(--text-dim); padding:9px 16px; border-radius:10px;
+    font-size:13px; font-family:'DM Sans',sans-serif;
+    font-weight:500; cursor:pointer; transition:all .2s;
+  }
+  .btn-outline:hover { border-color:var(--mint); color:var(--mint); }
+
+  /* ALERTA MODAL */
+  .alerta-preview {
+    background:var(--surface2); border:1.5px solid var(--border);
+    border-radius:10px; padding:16px; font-size:13px;
+    color:var(--text); line-height:1.7;
+    white-space:pre-wrap; margin:14px 0;
+    max-height:260px; overflow-y:auto;
+    font-family:'DM Sans',sans-serif;
+  }
+  .alerta-dest {
+    display:flex; align-items:center; gap:10px;
+    padding:12px 14px;
+    background:var(--mint-light); border:1.5px solid var(--mint-mid);
+    border-radius:10px; margin-bottom:10px;
+  }
+  .alerta-dest-text { font-size:13px; color:var(--text); }
+  .alerta-dest-text strong { color:var(--mint); }
+
+  /* EMPTY */
+  .empty-state { text-align:center; padding:60px 20px; color:var(--text-dim); }
+  .empty-state .big { font-size:40px; margin-bottom:12px; }
+
+  /* TOAST */
+  .toast {
+    position:fixed; bottom:24px; right:24px;
+    background:var(--text); color:var(--bg);
+    padding:12px 18px; border-radius:12px;
+    font-size:13px; z-index:300;
+    transform:translateY(20px); opacity:0;
+    transition:all .3s; display:flex; align-items:center; gap:8px;
+    box-shadow:0 4px 20px rgba(0,0,0,.15);
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
+
+  /* MINT ACCENT LINE */
+  .accent-bar {
+    height:4px;
+    background:linear-gradient(90deg, var(--mint) 0%, var(--lila) 50%, var(--yellow) 100%);
+  }
+
+  @media(max-width:900px) {
+    .stats-row { grid-template-columns:repeat(2,1fr); }
+    main { padding:16px; }
+    .header-inner { padding:12px 16px; }
+    .form-row { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="accent-bar"></div>
+
+<header>
+  <div class="header-inner">
+    <img src="data:image/png;base64,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" alt="Neuros" class="logo-img">
+    <div class="header-divider"></div>
+    <div>
+      <div class="header-title">Gestor <span>CUD</span></div>
+      <div class="header-sub">Control de vencimientos y alertas</div>
+    </div>
+    <div class="header-right">
+      <span class="badge-alert" id="alertBadge">0 vencen pronto</span>
+      <button class="btn btn-admin" onclick="openWaModal()">
+        📧 Avisar Administración
+      </button>
+      <button class="btn btn-primary" onclick="openModal()">
+        ＋ Nuevo paciente
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="stats-row">
+    <div class="stat-card mint">
+      <div class="stat-label">Total activos</div>
+      <div class="stat-num" id="statTotal">—</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-label">🔴 Vencen en 30 días</div>
+      <div class="stat-num" id="statDanger">—</div>
+    </div>
+    <div class="stat-card warn">
+      <div class="stat-label">🟠 Vencen en 60 días</div>
+      <div class="stat-num" id="statWarn">—</div>
+    </div>
+    <div class="stat-card lila">
+      <div class="stat-label">✅ Sin urgencia</div>
+      <div class="stat-num" id="statOk">—</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="ico">🔍</span>
+      <input type="text" id="searchInput" placeholder="Buscar paciente..." oninput="renderTable()">
+    </div>
+    <button class="filter-btn active" data-filter="all" onclick="setFilter(this)">Todos</button>
+    <button class="filter-btn danger" data-filter="danger" onclick="setFilter(this)">🔴 &lt;30 días</button>
+    <button class="filter-btn warn" data-filter="warn" onclick="setFilter(this)">🟠 30–60 días</button>
+    <button class="filter-btn" data-filter="activo" onclick="setFilter(this)">Solo ACTIVO</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th onclick="sortBy('nombre',this)">Paciente ↕</th>
+          <th onclick="sortBy('operador',this)">Operador ↕</th>
+          <th onclick="sortBy('cud',this)">Venc. CUD ↕</th>
+          <th onclick="sortBy('dias',this)">Días restantes ↕</th>
+          <th>Observaciones</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <div class="big">🔍</div>
+      <p>No se encontraron pacientes con ese filtro.</p>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL NUEVO/EDITAR -->
+<div class="modal-overlay" id="formModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modalTitle">Nuevo Paciente</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <input type="hidden" id="editIdx" value="-1">
+    <div class="form-group">
+      <label>Apellido y Nombre *</label>
+      <input type="text" id="fNombre" placeholder="APELLIDO NOMBRE">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Estado</label>
+        <select id="fEstado">
+          <option value="ACTIVO">ACTIVO</option>
+          <option value="BAJA">BAJA</option>
+          <option value="PROCESO">PROCESO</option>
+          <option value="No ingresa">No ingresa</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Operador</label>
+        <input type="text" id="fOperador" placeholder="Nombre operador">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Vencimiento CUD (dd/mm/aaaa)</label>
+        <input type="text" id="fCud" placeholder="01/12/2026" oninput="autoCalcAviso()">
+      </div>
+      <div class="form-group">
+        <label>Fecha aviso (30d antes — auto)</label>
+        <input type="text" id="fVencimiento" placeholder="Se calcula solo" readonly style="opacity:.5;cursor:not-allowed;">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Turno de renovación CUD</label>
+      <input type="text" id="fTurno" placeholder="dd/mm/aaaa — se carga cuando la familia avisa">
+    </div>
+    <div class="form-group">
+      <label>Observaciones</label>
+      <textarea id="fObs" placeholder="Notas adicionales..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePatient()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ALERTA -->
+<div class="modal-overlay" id="waModal">
+  <div class="modal" style="width:580px;">
+    <div class="modal-title">
+      <span>📧 Alerta de vencimientos — Administración</span>
+      <button class="modal-close" onclick="closeWaModal()">✕</button>
+    </div>
+    <div class="alerta-dest">
+      <span style="font-size:20px;">📬</span>
+      <div class="alerta-dest-text">
+        Destinatarios: <strong>khidalgo@centroneuros.com.ar</strong> · <strong>mcaceres@centroneuros.com.ar</strong><br>
+        <span style="font-size:11px;color:var(--text-dim);">El reporte se envía automáticamente cada lunes via Google Apps Script.</span>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">Vista previa del reporte de esta semana:</p>
+    <div class="alerta-preview" id="waPreviewText"></div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeWaModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const RAW = [{"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "ABENTE BENJAMIN NICOLAS", "cud": "1/11/2026", "vencimiento": "2/10/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "ABREGU JOAQUIN ANGEL", "cud": "20/8/2026", "vencimiento": "21/7/2026", "turno_cud": "", "observaciones": "BAJA EL 21/2/2025"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "ACOSTA CELESTE SOLEDAD", "cud": "30/5/2032", "vencimiento": "30/4/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "AGUERO TEVEZ JULIANA", "cud": "24/10/2026", "vencimiento": "24/9/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "AGUIRRE ALEX ANDRES", "cud": "3/3/2028", "vencimiento": "2/2/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "AGUIRRE FRANCISCO SIMON", "cud": "13/6/2027", "vencimiento": "14/5/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "AGUIRRE LEVY UNAY", "cud": "1/5/2029", "vencimiento": "1/4/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "", "nombre": "AGUIRRE VILLAMIZAR OLIVER JOSE", "cud": "1/3/2028", "vencimiento": "31/1/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "ALANIS GINA", "cud": "1/3/2027", "vencimiento": "30/1/2027", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "J Hidalgo", "nombre": "ALDERETE FRANCO JONAS", "cud": "24/8/2032", "vencimiento": "25/7/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "ALMADA EZCURRA SOFIA", "cud": "13/4/2032", "vencimiento": "14/3/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "ALMADA MARTINEZ BAUTISTA BENJAMIN", "cud": "1/8/2029", "vencimiento": "2/7/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "AMAYA TADEO BENJAMIN", "cud": "1/4/2028", "vencimiento": "2/3/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "ANASTASIA STELLA MARIS", "cud": "1/8/2028", "vencimiento": "2/7/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "ANTEZANA ESCOBAR THIAGO LUIS", "cud": "1/6/2029", "vencimiento": "2/5/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "ARCE BENICIO", "cud": "1/12/2026", "vencimiento": "1/11/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "ARGUELLO THOMAS ALEJO", "cud": "2/11/2025", "vencimiento": "3/10/2025", "turno_cud": "", "observaciones": "0"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "ARRIETA BENJAMIN", "cud": "2/11/2026", "vencimiento": "3/10/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "", "nombre": "ARROYO OSCAR ALFREDO", "cud": "28/7/2032", "vencimiento": "28/6/2032", "turno_cud": "", "observaciones": "prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "ASTUDILLO PABLO ISMAEL", "cud": "31/8/2026", "vencimiento": "1/8/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "AVACA MATEO BENJAMIN", "cud": "5/1/2028", "vencimiento": "6/12/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "BALTAZAR BERNAL ALISON", "cud": "1/11/2030", "vencimiento": "2/10/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "BALTAZAR BERNAL HANNA MARTINA", "cud": "1/2/2029", "vencimiento": "2/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "BALTAZAR BERNAL ISABELLA MILENA", "cud": "1/3/2029", "vencimiento": "30/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "NO INGRESA", "operador": "", "nombre": "BARRAZA FABRIZIO BENJAMIN", "cud": "23/3/2026", "vencimiento": "21/2/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "BARRERA WALTER DANIEL", "cud": "1/5/2033", "vencimiento": "1/4/2033", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "BARRIONUEVO ALAN EZEQUIEL", "cud": "3/12/2029", "vencimiento": "3/11/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "BARRIONUEVO ZAIRA MAYLEN", "cud": "13/1/2028", "vencimiento": "14/12/2027", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "BARRIOS RIVERO CAMILA ARIADNA", "cud": "1/9/2029", "vencimiento": "2/8/2029", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "BATALLA GABRIEL", "cud": "3/11/2025", "vencimiento": "4/10/2025", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "BAZAN LOPEZ THOMAS DAVID", "cud": "30/6/2027", "vencimiento": "31/5/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "BONZA VAZQUEZ BENJAMIN", "cud": "7/9/2027", "vencimiento": "8/8/2027", "turno_cud": "", "observaciones": ""}, {"estado": "NO INGRESA", "operador": "", "nombre": "BRAVO SERGIO EZEQUIEL", "cud": "17/1/2033", "vencimiento": "18/12/2032", "turno_cud": "", "observaciones": "prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "BRAVO VITORGAN EZEQUIEL", "cud": "28/12/2029", "vencimiento": "28/11/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "BRUNO MARCOS GABRIEL", "cud": "1/10/2031", "vencimiento": "1/9/2031", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "BUSTOS GUZMAN MALEN AGUSTINA", "cud": "1/7/2028", "vencimiento": "1/6/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CABILLON PEDROZO SELENIA AIMÉ", "cud": "30/6/2026", "vencimiento": "31/5/2026", "turno_cud": "", "observaciones": ""}, {"estado": "", "operador": "M caceres", "nombre": "CACERES NOAH CALEB LORENZO", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CACIVA MINASSIAN ALEJO", "cud": "1/8/2028", "vencimiento": "2/7/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CACIVA MINASSIAN MORENA", "cud": "1/7/2026", "vencimiento": "1/6/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CALLEJO LIONEL ALEXANDER", "cud": "1/10/2033", "vencimiento": "1/9/2033", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CAMPOS AMBAR AILIN", "cud": "1/12/2028", "vencimiento": "1/11/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CAMPOS ANTONELLA MILAGROS", "cud": "28/7/2027", "vencimiento": "28/6/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CAMPOS LUNA ESTEFANIA", "cud": "1/12/2029", "vencimiento": "1/11/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CAMPOS MATEO LAUTARO", "cud": "1/11/2029", "vencimiento": "2/10/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CAMPOS THIAGO DANIEL", "cud": "1/11/2029", "vencimiento": "2/10/2029", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "", "nombre": "CAMUSSO ALEJANDRO", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "", "nombre": "CANOVAI MARIO GABRIEL", "cud": "1/2/2035", "vencimiento": "2/1/2035", "turno_cud": "", "observaciones": "GEA PREPAGA"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CARABAJAL BELEN MICAELA", "cud": "1/9/2035", "vencimiento": "2/8/2035", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CARABAJAL PINEDA THIAGO EZEQUIEL", "cud": "5/9/2029", "vencimiento": "6/8/2029", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "CARBALLO SANTIAGO JOSE", "cud": "14/1/2026", "vencimiento": "15/12/2025", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CARISSIMO CACERES JUAN AGUSTIN", "cud": "22/12/2027", "vencimiento": "22/11/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CARNERO ESMERALDA", "cud": "1/4/2029", "vencimiento": "2/3/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CAROLI VILLARREAL AXEL BENJAMIN", "cud": "23/5/2032", "vencimiento": "23/4/2032", "turno_cud": "", "observaciones": ""}, {"estado": "", "operador": "J Hidalgo", "nombre": "CARRASCO LUIS FRANCISCO", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CARRIZO MIA ANTONELLA", "cud": "1/12/2038", "vencimiento": "1/11/2038", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CARRIZO MICAELA JAZMIN", "cud": "1/12/2038", "vencimiento": "1/11/2038", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CARRIZO NOAH LIHUEN", "cud": "1/7/2029", "vencimiento": "1/6/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CASAS AARON MACIEL", "cud": "1/1/2033", "vencimiento": "2/12/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CASCO SANCHEZ MAXIMO GIOVANNI", "cud": "1/6/2027", "vencimiento": "2/5/2027", "turno_cud": "", "observaciones": ""}, {"estado": "", "operador": "M caceres", "nombre": "CASTILLO GODOY CESAR SANTINO", "cud": "1/12/2032", "vencimiento": "1/11/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CASTILLO IAN", "cud": "1/3/2029", "vencimiento": "30/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CATA CATA CARRANZA JOHAN AGUSTIN", "cud": "1/11/2039", "vencimiento": "2/10/2039", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CATRAMBONI FABRIZZIO FRANCESCO", "cud": "1/11/2026", "vencimiento": "2/10/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CEBALLOS DELFINA AZUL", "cud": "13/3/2026", "vencimiento": "11/2/2026", "turno_cud": "2026-06-09 00:00:00", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CEJAS JOSE GABRIEL", "cud": "1/6/2029", "vencimiento": "2/5/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CERUOLO FRANCO AGUSTIN", "cud": "1/4/2035", "vencimiento": "2/3/2035", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "J Hidalgo", "nombre": "CERUOLO SANTINO", "cud": "1/7/2032", "vencimiento": "1/6/2032", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "CESTARES CARRANZA FABRIZIO IVAN", "cud": "1/10/2026", "vencimiento": "1/9/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CHACOMA YAZIE ALEJO", "cud": "6/1/2027", "vencimiento": "7/12/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CLARO MARINO JULIETA NICOL", "cud": "1/9/2030", "vencimiento": "2/8/2030", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "COEROBORGA EMILY SOFIA", "cud": "1/11/2027", "vencimiento": "2/10/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "COLAZO SANCHEZ SEBASTIAN ANDRES", "cud": "1/11/2030", "vencimiento": "2/10/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "COLMENARES RODRIGUEZ MARTIN RICARDO", "cud": "15/3/2027", "vencimiento": "13/2/2027", "turno_cud": "", "observaciones": "0"}, {"estado": "BAJA", "operador": "", "nombre": "CONTRERAS BAUTISTA LEONEL", "cud": "1/4/2030", "vencimiento": "2/3/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CONTRERAS THOMAS ELIAS", "cud": "1/9/2032", "vencimiento": "2/8/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CORDOBA ALAN SAMUEL", "cud": "21/1/2027", "vencimiento": "22/12/2026", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "M caceres", "nombre": "CORDOBA BRIAN OSVALDO", "cud": "25/9/2025", "vencimiento": "26/8/2025", "turno_cud": "", "observaciones": "Aun no saco turno para renovación  -  sale de lista por no tener cud"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CORDOBA MAMANI NOAH DALMIRO", "cud": "1/12/2026", "vencimiento": "1/11/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "CORNEJO SAMIENTA FACUNDO NICOLAS", "cud": "1/7/2029", "vencimiento": "1/6/2029", "turno_cud": "", "observaciones": "0"}, {"estado": "No ingresa", "operador": "", "nombre": "CORTEZ LUIS ROBERTO", "cud": "1/11/2029", "vencimiento": "2/10/2029", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "CROSS PADRO TOMAS", "cud": "1/3/2030", "vencimiento": "30/1/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CUELLO BARRERA TIAGO JESUS", "cud": "4/8/2032", "vencimiento": "5/7/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "CUELLO VALENTINO ANDRES", "cud": "1/1/2041", "vencimiento": "2/12/2040", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "DALLIA ASHLY KAORI", "cud": "1/3/2031", "vencimiento": "30/1/2031", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "DE ANDRES TOMAS", "cud": "1/5/2033", "vencimiento": "1/4/2033", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "DEBURQUIS BASTIAN BENITO", "cud": "31/3/2027", "vencimiento": "1/3/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "DELFINI CATALINA INES", "cud": "8/4/2026", "vencimiento": "9/3/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "DESIMONE CAMILO AGUSTIN", "cud": "1/1/2031", "vencimiento": "2/12/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "DIAZ ROMAN VALENTIN", "cud": "1/5/2028", "vencimiento": "1/4/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "DIAZ SILVA THIAN ALEXANDER", "cud": "1/11/2030", "vencimiento": "2/10/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "DIDYCZ ESTRADA MALENA VALENTINA", "cud": "1/8/2040", "vencimiento": "2/7/2040", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "DOBANTON MALENA LORETA", "cud": "1/5/2031", "vencimiento": "1/4/2031", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "ESPAÑA VICTORIA RENATA", "cud": "23/4/2026", "vencimiento": "24/3/2026", "turno_cud": "", "observaciones": "revisar la cobertura con OS aun no tiene turno de renovacion 20/3"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "ESPINDOLA ARCE SOFIA", "cud": "23/2/2027", "vencimiento": "24/1/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "ESQUIVEL ALVARO SAMUEL", "cud": "1/1/2029", "vencimiento": "2/12/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "FALCON MALENA AGUSTINA", "cud": "1/4/2030", "vencimiento": "2/3/2030", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "FARIAS DANTE EMMANUEL", "cud": "25/10/2027", "vencimiento": "25/9/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "FAZEKAS FERREYRA IKER", "cud": "1/1/2029", "vencimiento": "2/12/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "FERNANDEZ PEREZ FACUNDO JAVIER", "cud": "1/5/2029", "vencimiento": "1/4/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "FERREYRA ALMA VALENTINA", "cud": "1/9/2033", "vencimiento": "2/8/2033", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "FERREYRA JANA KEYLA BELEN", "cud": "1/11/2028", "vencimiento": "2/10/2028", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "FERREYRA SALAS ENZO ABEL", "cud": "1/5/2026", "vencimiento": "1/4/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "FIGUEROA IVAN PEDRO", "cud": "4/12/2026", "vencimiento": "4/11/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "FINO ANDRES NICOLAS", "cud": "1/3/2035", "vencimiento": "30/1/2035", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "FLINT CONSTANTINO", "cud": "1/10/2032", "vencimiento": "1/9/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "FLORES LUCIA DE LOS ANGELES", "cud": "1/8/2040", "vencimiento": "2/7/2040", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "FRONTERA TOBIAS EZEQUIEL", "cud": "1/5/2032", "vencimiento": "1/4/2032", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "FURTADO JUAN JOSE", "cud": "6/4/2029", "vencimiento": "7/3/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "GALINDEZ AMABELLA FRANCESCA", "cud": "1/12/2029", "vencimiento": "1/11/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "GALINDEZ DIOMIRA JAZMIN", "cud": "1/2/2027", "vencimiento": "2/1/2027", "turno_cud": "", "observaciones": ""}, {"estado": "", "operador": "M caceres", "nombre": "GARETTO RICARDO FRANCISCO", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "GENOVESIO GUTIERREZ LUIS RAUL", "cud": "12/6/2026", "vencimiento": "13/5/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "GIMENEZ SANTINO BENJAMIN", "cud": "1/12/2029", "vencimiento": "1/11/2029", "turno_cud": "", "observaciones": "13/11/2025 BAJA"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "GIRALDA FLORENCIA ABRIL", "cud": "31/1/2050", "vencimiento": "31/1/2050", "turno_cud": "", "observaciones": "Nuevo cud no se actualiza más"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "GODINO OCHONGA JUAN VALENTIN", "cud": "1/12/2030", "vencimiento": "1/11/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "GODOY SANTIAGO", "cud": "30/5/2027", "vencimiento": "30/4/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "GOMEZ BRUNO JOAQUIN", "cud": "8/8/2032", "vencimiento": "9/7/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "GOMEZ GARCIA VICTORIA ABRIL", "cud": "1/8/2028", "vencimiento": "2/7/2028", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "GOMEZ GINO BENJAMIN", "cud": "2/8/2026", "vencimiento": "3/7/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "GOMEZ MATEO ESTEFANO", "cud": "1/10/2026", "vencimiento": "1/9/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "GOMEZ WALTER ALBERTO", "cud": "1/11/2028", "vencimiento": "2/10/2028", "turno_cud": "", "observaciones": "14/1/25 EN CANADA"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "GONZALEZ OMAR EMILIO BALTAZAR", "cud": "6/3/2033", "vencimiento": "4/2/2033", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "GONZALEZ VERA MATEO", "cud": "17/12/2025", "vencimiento": "17/11/2025", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "GOROCITO FIORE MARTINO", "cud": "1/6/2030", "vencimiento": "2/5/2030", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "M caceres", "nombre": "GOROSITO FRANCISCO DANIEL", "cud": "22/7/2029", "vencimiento": "22/6/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "GRIBAUDO JUAN IGNACIO", "cud": "19/4/2028", "vencimiento": "20/3/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "GUANANJA AGUIRRE EIDAN MAXIMO", "cud": "1/8/2026", "vencimiento": "2/7/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "GUARNIERI LUCAS DANIEL", "cud": "1/8/2030", "vencimiento": "2/7/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "GUETTIER VALENTINA SOL", "cud": "1/3/2030", "vencimiento": "30/1/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "GUTIERREZ OLAVE CRISTOBAL NICOLAS", "cud": "17/3/2026", "vencimiento": "15/2/2026", "turno_cud": "2026-04-14 00:00:00", "observaciones": "Es prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "GUZMAN BRISA CAROLINA", "cud": "23/10/2025", "vencimiento": "23/9/2025", "turno_cud": "", "observaciones": "prorroga VENCIDA - PACIENTE DE BAJA"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "HEREDIA BAUTISTA SAMUEL", "cud": "3/6/2027", "vencimiento": "4/5/2027", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "J Hidalgo", "nombre": "HEREDIA JOAQUIN", "cud": "1/5/2028", "vencimiento": "1/4/2028", "turno_cud": "", "observaciones": "0"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "HEREDIA MAMANI THIAGO EMANUEL", "cud": "3/6/2032", "vencimiento": "4/5/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "HERRERA LISANDRO ADRIEL", "cud": "1/3/2034", "vencimiento": "30/1/2034", "turno_cud": "2026-03-26 00:00:00", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "IBARRA CHAVEZ KAEL JOSUE", "cud": "27/5/2026", "vencimiento": "27/4/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "IBARRA CHAVEZ LIAM DAVID", "cud": "18/1/2028", "vencimiento": "19/12/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "IRUSTA MENA DANIEL EMILIANO", "cud": "1/5/2040", "vencimiento": "1/4/2040", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "IRUSTA MENA IVAN LISANDRO", "cud": "1/5/2036", "vencimiento": "1/4/2036", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "JACOME MAMANI MANUEL", "cud": "1/5/2027", "vencimiento": "1/4/2027", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "JAIME FRANCESCA ANTONELLA", "cud": "1/9/2031", "vencimiento": "2/8/2031", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "JAIME JUAN CRUZ", "cud": "31/8/2026", "vencimiento": "1/8/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "JAZBEC JEREMIAS", "cud": "1/9/2028", "vencimiento": "2/8/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "JIMENEZ ALEJANDRO EZEQUIEL", "cud": "1/3/2034", "vencimiento": "30/1/2034", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "JODA ANGEL VALENTINO", "cud": "3/3/2033", "vencimiento": "1/2/2033", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "KOLISNNYK JULIAN", "cud": "1/12/2030", "vencimiento": "1/11/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "LAMONICA SOFIA GUADALUPE", "cud": "24/10/2026", "vencimiento": "24/9/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "LASTRA BIANCA GUADALUPE", "cud": "1/9/2030", "vencimiento": "2/8/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LAZARTE MATEO LIONEL", "cud": "28/5/2026", "vencimiento": "28/4/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "LEAL JOAQUIN CARLOS ALBERTO", "cud": "28/5/2026", "vencimiento": "28/4/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LEDEZMA AMANDA BEATRIZ", "cud": "26/11/2029", "vencimiento": "27/10/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LEITON LUCAS NICOLAS", "cud": "1/9/2031", "vencimiento": "2/8/2031", "turno_cud": "", "observaciones": ""}, {"estado": "", "operador": "J Hidalgo", "nombre": "LEMOINE MIGUEL ANGEL", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "LENCINA MILENA MILAGROS", "cud": "26/12/2027", "vencimiento": "26/11/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LIENDO IGNACIO GABRIEL", "cud": "1/1/2027", "vencimiento": "2/12/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LIMACHI DARIO ALEXIS", "cud": "1/12/2027", "vencimiento": "1/11/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LLANES BUSTOS BRISA MILAGROS DESIREE", "cud": "1/3/2027", "vencimiento": "30/1/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "LOPEZ JOAQUIN ABEL", "cud": "7/11/2027", "vencimiento": "8/10/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "LOPEZ SALAS LAUTARO MARTIN", "cud": "1/3/2029", "vencimiento": "30/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "LOPEZ VILA GIOVANNI", "cud": "3/3/2033", "vencimiento": "1/2/2033", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "LOVATTO BRUNO SANTINO", "cud": "27/8/2028", "vencimiento": "28/7/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LOZA JUAN IGNACIO", "cud": "15/6/2028", "vencimiento": "16/5/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "LOZA RODIO VITTORIO", "cud": "1/2/2034", "vencimiento": "2/1/2034", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LOZA TICIANO BENJAMIN", "cud": "8/3/2026", "vencimiento": "6/2/2026", "turno_cud": "", "observaciones": "Es prorroga - 17/3 consulto por el turno"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LUDUEÑA PERALTA BRUNO BENJAMIN", "cud": "1/9/2035", "vencimiento": "2/8/2035", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LUDUEÑA PERALTA LUCIANO MATEO", "cud": "1/5/2033", "vencimiento": "1/4/2033", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "LUJAN JOEL NICOLAS", "cud": "1/2/2027", "vencimiento": "2/1/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MACHADO VIDELA BENJAMIN FRANCESCO", "cud": "1/5/2029", "vencimiento": "1/4/2029", "turno_cud": "", "observaciones": ""}, {"estado": "No ingresa", "operador": "", "nombre": "MALDONADO GALVAN THIAGO UZIEL", "cud": "1/11/2027", "vencimiento": "2/10/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MANCINI MEDINA UZIEL JEREMIAS", "cud": "1/6/2026", "vencimiento": "2/5/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "MARCEL OSCAR LUIS", "cud": "17/10/2030", "vencimiento": "17/9/2030", "turno_cud": "", "observaciones": "prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MARQUEZ VALENTINO", "cud": "1/5/2029", "vencimiento": "1/4/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MARTINEZ  MARTA OLINDA", "cud": "28/2/2027", "vencimiento": "29/1/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MARTINEZ LORENZO", "cud": "5/11/2026", "vencimiento": "6/10/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MARTINEZ PAUCAR JULIETA VICTORIA", "cud": "1/3/2029", "vencimiento": "30/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MARTINEZ RAUL HECTOR", "cud": "19/8/2027", "vencimiento": "20/7/2027", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "M caceres", "nombre": "MARTINEZ TOMAS", "cud": "1/3/2030", "vencimiento": "30/1/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MATASSI BENICIO JOAQUIN", "cud": "1/12/2029", "vencimiento": "1/11/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MATASSI TULIO ALEJANDRO", "cud": "28/6/2032", "vencimiento": "29/5/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MEDINA ALMA JAZMIN", "cud": "1/2/2032", "vencimiento": "2/1/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MEDINA ROMERO CHIARA", "cud": "1/8/2030", "vencimiento": "2/7/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MELANO MOLINA LAUTARO", "cud": "1/12/2027", "vencimiento": "1/11/2027", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "MEYER BONDER LUZ ELENA TERESITA", "cud": "1/3/2029", "vencimiento": "30/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MICANGELLI DIEGO GIULIANO", "cud": "14/12/2029", "vencimiento": "14/11/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MICANGELLI LUANA", "cud": "15/12/2027", "vencimiento": "15/11/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MOLFA COMUN KALED JOSUE", "cud": "18/7/2029", "vencimiento": "18/6/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MOLINA ALEJO JOEL", "cud": "15/7/2028", "vencimiento": "15/6/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MOLINA COLOMA TOMAS GONZALO", "cud": "1/11/2028", "vencimiento": "2/10/2028", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "MOLINA DAVIT GONZALO", "cud": "1/8/2028", "vencimiento": "2/7/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MONSERRAT GARCIA JONAS EZEQUIEL", "cud": "16/7/2026", "vencimiento": "16/6/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MONTENEGRO DEVRAN SAMUEL", "cud": "1/1/2029", "vencimiento": "2/12/2028", "turno_cud": "", "observaciones": ""}, {"estado": "", "operador": "J Hidalgo", "nombre": "MONTENEGRO JESUS BAUTISTA", "cud": "3/5/2028", "vencimiento": "3/4/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MONTENEGRO NUÑEZ FABRIZIO JESUS", "cud": "1/12/2040", "vencimiento": "1/11/2040", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MONTIEL CABRERA GUADALUPE", "cud": "28/9/2026", "vencimiento": "29/8/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MONTIVERO LUDUEÑA CARLOS MAXIMILIANO", "cud": "1/4/2031", "vencimiento": "2/3/2031", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MONTIVERO LUDUEÑA TOBIAS ALEXADER", "cud": "3/5/2026", "vencimiento": "3/4/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MONTOYA ROCIO MILENA", "cud": "1/1/2029", "vencimiento": "2/12/2028", "turno_cud": "", "observaciones": ""}, {"estado": "", "operador": "J Hidalgo", "nombre": "MONZO ANDREA DEL VALLE", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MONZON RAMIRO JAVIER", "cud": "29/10/2026", "vencimiento": "29/9/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MORA RODRIGUEZ DIEGO", "cud": "1/8/2029", "vencimiento": "2/7/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MORALES RAMIRO ELIAN", "cud": "19/4/2027", "vencimiento": "20/3/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MORALES VALENTINO", "cud": "1/2/2040", "vencimiento": "2/1/2040", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MOREIRA TOMAS", "cud": "16/12/2027", "vencimiento": "16/11/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MORENO SUAREZ JOAQUIN", "cud": "28/8/2026", "vencimiento": "29/7/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MOTTURA LAUTARO BENJAMIN", "cud": "5/1/2032", "vencimiento": "6/12/2031", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MOYA BRUNO CALIXTO", "cud": "18/7/2026", "vencimiento": "18/6/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "MOYANO BARRIOS RODRIGO VALENTIN", "cud": "1/4/2028", "vencimiento": "2/3/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MOYANO MATEO JULIAN", "cud": "1/3/2028", "vencimiento": "31/1/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MOYANO SANTINO LEONEL", "cud": "1/10/2028", "vencimiento": "1/9/2028", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "J Hidalgo", "nombre": "MOYANO TOMAS", "cud": "20/10/2026", "vencimiento": "20/9/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "PROCESO", "operador": "M caceres", "nombre": "MULLER HIAGO", "cud": "1/11/2030", "vencimiento": "2/10/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MURUA BALTHAZAR", "cud": "11/7/2026", "vencimiento": "11/6/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "MURUA JOAQUIN YUTIEL", "cud": "27/7/2027", "vencimiento": "27/6/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "NAVARRO FERNANDEZ AGOSTINA", "cud": "11/8/2027", "vencimiento": "12/7/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "NAVARRO LUCAS EDGARDO", "cud": "27/2/2028", "vencimiento": "28/1/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "NIETO ROMERO JEREMIAS JULIAN", "cud": "31/1/2028", "vencimiento": "1/1/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "OCAÑO ALONSO MARTINA", "cud": "1/4/2034", "vencimiento": "2/3/2034", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "OCHONGA PEREZ ALEX BENJAMIN", "cud": "1/11/2034", "vencimiento": "2/10/2034", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "OJEDA MORENO ELIAN ALEXANDER", "cud": "18/12/2026", "vencimiento": "18/11/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "OLIVA MARTINEZ AXEL JAEL", "cud": "1/9/2030", "vencimiento": "2/8/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "OLIVARES LUNA APRIL BELEN", "cud": "1/6/2029", "vencimiento": "2/5/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "OLIVARES LUNA JOSUE DANYEL", "cud": "1/6/2032", "vencimiento": "2/5/2032", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "ORELLANO ZOTAR WALTER ALEC", "cud": "1/1/2028", "vencimiento": "2/12/2027", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "OVEJERO MOLINA CATALINA", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": "apross"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "OVIEDO MAXIMO SAMUEL", "cud": "1/10/2028", "vencimiento": "1/9/2028", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "PACHECO VALENTINO GENNARO", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": "apross"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "PAEZ FORMOSO LEON BENJAMIN", "cud": "1/11/2029", "vencimiento": "2/10/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PAFFUME TAPIA IGNACIO", "cud": "1/10/2028", "vencimiento": "1/9/2028", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "J Hidalgo", "nombre": "PALACIOS LUCERO NAHIRA", "cud": "1/9/2029", "vencimiento": "2/8/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PALAVECINO VALENTINO NICOLAS", "cud": "17/5/2026", "vencimiento": "17/4/2026", "turno_cud": "2026-08-11 00:00:00", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "PATRITTI MATEO", "cud": "1/11/2027", "vencimiento": "2/10/2027", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "J Hidalgo", "nombre": "PAZ CORDOBA BAUTISTA", "cud": "5/5/2026", "vencimiento": "5/4/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PEÑAFLOR SANTINO AGUSTIN", "cud": "1/12/2030", "vencimiento": "1/11/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PERALTA ISAAC", "cud": "1/4/2028", "vencimiento": "2/3/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "PERALTA OLMOS AILIN FRANCESCA", "cud": "1/3/2029", "vencimiento": "30/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "PERALTA PERUGINI NURIA AMELIE", "cud": "1/4/2028", "vencimiento": "2/3/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "PERALTA YENIFFER ESTRELLA", "cud": "10/9/2029", "vencimiento": "11/8/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PEREYRA LAUTARO SAMUEL", "cud": "1/3/2033", "vencimiento": "30/1/2033", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PEREYRA LUCCA PATRICIO", "cud": "7/7/2026", "vencimiento": "7/6/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PEREYRA MATEO BENJAMIN", "cud": "1/7/2029", "vencimiento": "1/6/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "PEREYRA OVIEDO MARTINA AYLEN", "cud": "1/12/2040", "vencimiento": "1/11/2040", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PEREYRA THIAGO BENJAMIN", "cud": "26/8/2026", "vencimiento": "27/7/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "PEREZ ESCUDERO ARUMA ISABELLA", "cud": "1/3/2029", "vencimiento": "30/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PEREZ FERREYRA MIA FRANCESCA", "cud": "13/12/2026", "vencimiento": "13/11/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PEREZ LUIS SANTIAGO", "cud": "1/5/2030", "vencimiento": "1/4/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "PICHILINGUE ROMERO JUAN MARTIN", "cud": "1/7/2031", "vencimiento": "1/6/2031", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "PINTO JESICA NOELIA", "cud": "1/2/2027", "vencimiento": "2/1/2027", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "PINTO LOURDES VICTORIA", "cud": "1/6/2028", "vencimiento": "2/5/2028", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "J Hidalgo", "nombre": "POMPONIO ALMA LUCIA", "cud": "1/9/2030", "vencimiento": "2/8/2030", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "J Hidalgo", "nombre": "POMPONIO TOMAS GENARO", "cud": "1/3/2033", "vencimiento": "30/1/2033", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PONCE BARGAS MIA AGOSTINA", "cud": "1/1/2031", "vencimiento": "2/12/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PONCE BARGAS TOMAS", "cud": "1/8/2027", "vencimiento": "2/7/2027", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "", "nombre": "PONCE IAN NEHUEN", "cud": "1/9/2027", "vencimiento": "2/8/2027", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "PONCE MAXIMILIANO VALENTIN", "cud": "1/5/2028", "vencimiento": "1/4/2028", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "QUINTEROS JONATHAN JOAQUIN", "cud": "18/12/2025", "vencimiento": "18/11/2025", "turno_cud": "", "observaciones": "sin turno, la junta otorgara turnos en enero contactó Sonia."}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "RAMIREZ CORTEZ EZEQUIEL TOMAS", "cud": "3/5/2026", "vencimiento": "3/4/2026", "turno_cud": "2026-06-16 00:00:00", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "RAMIREZ URQUIA GENARO", "cud": "6/12/2025", "vencimiento": "6/11/2025", "turno_cud": "", "observaciones": "paciente dado de baja"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "RANZI SILVETTI MILDRED AZUL", "cud": "1/10/2026", "vencimiento": "1/9/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "REYES FERREYRA AIXA YAZMIN", "cud": "18/5/2026", "vencimiento": "18/4/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "REYNA SOFIA ELENA", "cud": "30/5/2029", "vencimiento": "30/4/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "REYNOSO MANUEL ELIAS", "cud": "1/8/2028", "vencimiento": "2/7/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "RIOS ACOSTA STHEFANY", "cud": "31/3/2027", "vencimiento": "1/3/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "RIOS AMBAR", "cud": "20/10/2026", "vencimiento": "20/9/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "ROBIN FELIPE BENJAMIN", "cud": "1/5/2030", "vencimiento": "1/4/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "ROBLES LOZA FRANCHESCA ANTONELLA", "cud": "1/9/2029", "vencimiento": "2/8/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "ROBLES LOZA IGNACIO AGUSTIN", "cud": "7/12/2027", "vencimiento": "7/11/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "RODRIGUEZ CONTRERAS ALEXANDER GINO", "cud": "6/10/2027", "vencimiento": "6/9/2027", "turno_cud": "", "observaciones": "prorroga"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "RODRIGUEZ LEON PATRICIO", "cud": "22/10/2026", "vencimiento": "22/9/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "RODRIGUEZ LEWEL", "cud": "3/7/2027", "vencimiento": "3/6/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "RODRIGUEZ MANGIAUT MATEO JOAQUIN", "cud": "10/1/2033", "vencimiento": "11/12/2032", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "M caceres", "nombre": "RODRIGUEZ SANTINO", "cud": "1/9/2030", "vencimiento": "2/8/2030", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "J Hidalgo", "nombre": "ROJAS AGUSTIN", "cud": "1/10/2030", "vencimiento": "1/9/2030", "turno_cud": "", "observaciones": ""}, {"estado": "PROCESO", "operador": "", "nombre": "ROMERO CESAR JESUS", "cud": "1/11/2035", "vencimiento": "2/10/2035", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "RUARTES JOAQUIN CARMELO", "cud": "1/6/2028", "vencimiento": "2/5/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "SANCHEZ BARRIOS MORENA VALENTINA", "cud": "10/12/2026", "vencimiento": "10/11/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "SANCHEZ CASTILLO MAXIMILIANO LORENZO RAMIRO", "cud": "1/10/2028", "vencimiento": "1/9/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "SEGOVIA TIZIANO BENJAMIN", "cud": "5/10/2026", "vencimiento": "5/9/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "SENA CALDERON MALENA", "cud": "22/9/2027", "vencimiento": "23/8/2027", "turno_cud": "", "observaciones": "2025-11-04 00:00:00"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "SORIA BENJAMIN UZIEL", "cud": "1/3/2031", "vencimiento": "30/1/2031", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "SORRONDEGUI NOAH GABRIEL", "cud": "1/5/2028", "vencimiento": "1/4/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "SOSA CINTIA PAOLA", "cud": "1/3/2034", "vencimiento": "30/1/2034", "turno_cud": "", "observaciones": "cud"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "SOSA YANGUEZ KIARA AGOSTINA", "cud": "5/10/2026", "vencimiento": "5/9/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "SOSA YANGUEZ MATEO GIOVANNI", "cud": "9/11/2026", "vencimiento": "10/10/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "SUAREZ CANDELA STEFANIA", "cud": "23/9/2029", "vencimiento": "24/8/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "SUAREZ CELESTE ABRIL", "cud": "23/9/2029", "vencimiento": "24/8/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "SUAREZ IAN NAHIR", "cud": "2/3/2027", "vencimiento": "31/1/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "SUAREZ SOLANGE YAZMIN", "cud": "24/11/2026", "vencimiento": "25/10/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "BAJA", "operador": "", "nombre": "TABLADA FACUNDO ALAIN", "cud": "1/4/2026", "vencimiento": "2/3/2026", "turno_cud": "", "observaciones": "LA MAMA SE QUEDO SIN TRABAJO"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "TELLO FRANCISCO MANUEL", "cud": "18/3/2027", "vencimiento": "16/2/2027", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "TISSERA MONICA ANDREA", "cud": "6/1/2026", "vencimiento": "7/12/2025", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "TOBARES WALDO EMILIO", "cud": "1/3/2030", "vencimiento": "30/1/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "TOLEDO BORIS", "cud": "1/5/2030", "vencimiento": "1/4/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "TOLEDO LIAM ANGEL", "cud": "1/5/2027", "vencimiento": "1/4/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "TOMAS PEDRAZA LUDMILA DEL VALLE", "cud": "1/6/2027", "vencimiento": "2/5/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "TORRELLA FRANCISCO VALENTIN", "cud": "1/9/2031", "vencimiento": "2/8/2031", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "M caceres", "nombre": "TORRES DALMASSO GAIA ISABELLA", "cud": "8/1/2026", "vencimiento": "9/12/2025", "turno_cud": "2026-06-19 00:00:00", "observaciones": "mando comprobante de turno"}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "TORRES SOFIA AGOSTINA", "cud": "1/8/2030", "vencimiento": "2/7/2030", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "TRONCOSO GONZALO", "cud": "1/1/2028", "vencimiento": "2/12/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "URFALIAN EMANUEL GABRIEL", "cud": "10/6/2026", "vencimiento": "11/5/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "VACA LAUTARO DANTE", "cud": "1/12/2028", "vencimiento": "1/11/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "VALDEZ CUERIO LEONIDAS AGUSTIN", "cud": "1/12/2026", "vencimiento": "1/11/2026", "turno_cud": "", "observaciones": "Es cud no prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "VALLE CARRIZO MATEO VALENTINO", "cud": "1/5/2027", "vencimiento": "1/4/2027", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "VARELA CIRO", "cud": "1/3/2027", "vencimiento": "30/1/2027", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "VARGAS PAZ MIA ISABELLA", "cud": "1/5/2026", "vencimiento": "1/4/2026", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "VARGAS SALDAIN TIZIANA", "cud": "1/3/2029", "vencimiento": "30/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "VELEZ RAMIRO YAMIL", "cud": "1/2/2029", "vencimiento": "2/1/2029", "turno_cud": "", "observaciones": "prorroga"}, {"estado": "ACTIVO", "operador": "M caceres", "nombre": "VENTURA GUZMAN SOFIA CELESTE", "cud": "1/12/2028", "vencimiento": "1/11/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "VIJARRA JOAQUIN EMILIANO", "cud": "1/3/2029", "vencimiento": "30/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "VILCHEZ JORGE FABIAN", "cud": "2/7/2026", "vencimiento": "2/6/2026", "turno_cud": "", "observaciones": "Es prorroga"}, {"estado": "", "operador": "M caceres", "nombre": "VILLAROEL BAIGORRIA MATEO BENJAMIN", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": ""}, {"estado": "BAJA", "operador": "", "nombre": "VILLARREAL BENJAMIN IGNACIO", "cud": "1/2/2029", "vencimiento": "2/1/2029", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "", "nombre": "VIVANCO ANGELICA BEATRIZ", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "VIVANCO CABRERA MATEO JOAQUIN", "cud": "1/12/2028", "vencimiento": "1/11/2028", "turno_cud": "", "observaciones": ""}, {"estado": "ACTIVO", "operador": "J Hidalgo", "nombre": "ZAPATA LAUTARO JESUS", "cud": "1/1/2040", "vencimiento": "2/12/2039", "turno_cud": "", "observaciones": ""}, {"estado": "", "operador": "", "nombre": "", "cud": "", "vencimiento": "", "turno_cud": "", "observaciones": ""}];
+
+let patients = JSON.parse(localStorage.getItem('cudPatients_v2') || 'null');
+if (!patients) {
+  patients = RAW.map((r,i) => ({...r, id: i}));
+} else {
+  // Merge new patients from RAW that don't exist yet
+  const existingNames = new Set(patients.map(p => p.nombre));
+  RAW.forEach((r,i) => {
+    if (!existingNames.has(r.nombre)) {
+      patients.push({...r, id: Date.now() + i});
+    }
+  });
+}
+
+let currentFilter = 'all';
+let sortKey = 'dias';
+let sortDir = 1;
+
+// ── UTILS ──
+function formatTurno(str) {
+  if (!str || str.trim() === '') return '';
+  // Handle "2026-06-09 00:00:00" format
+  try {
+    const d = new Date(str);
+    if (!isNaN(d)) return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  } catch(e) {}
+  return str;
+}
+function parseDate(str) {
+  if (!str || str === '') return null;
+  const parts = str.split('/');
+  if (parts.length !== 3) return null;
+  const [d,m,y] = parts.map(Number);
+  if (!d||!m||!y) return null;
+  return new Date(y, m-1, d);
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+function daysUntil(str) {
+  const d = parseDate(str);
+  if (!d) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.ceil((d - today) / 86400000);
+}
+function subtractDays(str, days) {
+  const d = parseDate(str);
+  if (!d) return '';
+  d.setDate(d.getDate() - days);
+  return fmtDate(d);
+}
+function savePersist() {
+  try { localStorage.setItem('cudPatients_v2', JSON.stringify(patients)); } catch(e) {}
+}
+
+// ── STATS ──
+function updateStats() {
+  const activos = patients.filter(p => (p.estado||'').toUpperCase() === 'ACTIVO');
+  const danger  = activos.filter(p => { const d=daysUntil(p.cud); return d!==null&&d>=0&&d<=30; });
+  const warn    = activos.filter(p => { const d=daysUntil(p.cud); return d!==null&&d>30&&d<=60; });
+  const ok      = activos.filter(p => { const d=daysUntil(p.cud); return d===null||d>60; });
+  document.getElementById('statTotal').textContent  = activos.length;
+  document.getElementById('statDanger').textContent = danger.length;
+  document.getElementById('statWarn').textContent   = warn.length;
+  document.getElementById('statOk').textContent     = ok.length;
+  const badge = document.getElementById('alertBadge');
+  if (danger.length > 0) { badge.textContent=`${danger.length} vencen pronto`; badge.classList.add('visible'); }
+  else badge.classList.remove('visible');
+}
+
+// ── FILTER / SORT / RENDER ──
+function setFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.filter;
+  renderTable();
+}
+function sortBy(key, th) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = 1; }
+  document.querySelectorAll('th').forEach(t => t.classList.remove('sorted'));
+  if (th) th.classList.add('sorted');
+  renderTable();
+}
+function renderTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let list = patients.filter(p => {
+    const nm = (p.nombre||'').toLowerCase();
+    if (q && !nm.includes(q)) return false;
+    if (currentFilter === 'activo') return (p.estado||'').toUpperCase() === 'ACTIVO';
+    if (currentFilter === 'danger') { const d=daysUntil(p.cud); return d!==null&&d>=0&&d<=30; }
+    if (currentFilter === 'warn')   { const d=daysUntil(p.cud); return d!==null&&d>30&&d<=60; }
+    return true;
+  });
+  list.sort((a,b) => {
+    let av,bv;
+    if (sortKey==='dias') { av=daysUntil(a.cud)??99999; bv=daysUntil(b.cud)??99999; }
+    else if (sortKey==='cud') { av=parseDate(a.cud)?.getTime()??0; bv=parseDate(b.cud)?.getTime()??0; }
+    else { av=(a[sortKey]||'').toLowerCase(); bv=(b[sortKey]||'').toLowerCase(); }
+    return av<bv?-sortDir:av>bv?sortDir:0;
+  });
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  if (!list.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML = list.map(p => {
+    const dias = daysUntil(p.cud);
+    let chipClass='days-ok', dotClass='dot-ok', chipText='';
+    if (dias===null) { chipClass='days-expired'; dotClass=''; chipText='Sin fecha'; }
+    else if (dias<0) { chipClass='days-expired'; dotClass=''; chipText='Vencido'; }
+    else if (dias<=30) { chipClass='days-danger'; dotClass='dot-danger'; chipText=`${dias}d`; }
+    else if (dias<=60) { chipClass='days-warn';   dotClass='dot-warn';   chipText=`${dias}d`; }
+    else { chipText=`${dias}d`; }
+    const est = (p.estado||'').toUpperCase();
+    let badgeClass = est==='ACTIVO'?'badge-activo':est==='BAJA'?'badge-baja':est==='PROCESO'?'badge-proceso':'badge-otro';
+    return `<tr>
+      <td class="nombre-cell">
+        <div>${p.nombre||''}</div>
+        ${p.turno_cud && p.turno_cud.trim() !== '' ? `<span class="turno-chip">📅 Turno: ${formatTurno(p.turno_cud)}</span>` : ''}
+      </td>
+      <td style="color:var(--text-dim)">${p.operador||'—'}</td>
+      <td style="font-weight:500">${p.cud||'—'}</td>
+      <td>${dias!==null?`<span class="days-chip ${chipClass}">${dotClass?`<span class="dot ${dotClass}"></span>`:''}${chipText}</span>`:'<span style="color:var(--text-faint)">—</span>'}</td>
+      <td style="color:var(--text-dim);font-size:12px;max-width:200px">${p.observaciones||''}</td>
+      <td>
+        <button class="action-btn" onclick="editPatient(${p.id})" title="Editar">✏️</button>
+        <button class="action-btn del" onclick="deletePatient(${p.id})" title="Eliminar">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── FORM MODAL ──
+function openModal() {
+  document.getElementById('formModal').classList.add('open');
+  document.getElementById('editIdx').value = -1;
+  document.getElementById('modalTitle').textContent = 'Nuevo Paciente';
+  ['fNombre','fCud','fVencimiento','fTurno','fObs'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('fEstado').value = 'ACTIVO';
+  document.getElementById('fOperador').value = '';
+}
+function editPatient(id) {
+  const p = patients.find(x => x.id===id);
+  if (!p) return;
+  document.getElementById('formModal').classList.add('open');
+  document.getElementById('editIdx').value = id;
+  document.getElementById('modalTitle').textContent = 'Editar Paciente';
+  document.getElementById('fNombre').value   = p.nombre||'';
+  document.getElementById('fEstado').value   = p.estado||'ACTIVO';
+  document.getElementById('fOperador').value = p.operador||'';
+  document.getElementById('fCud').value      = p.cud||'';
+  document.getElementById('fVencimiento').value = p.vencimiento||'';
+  document.getElementById('fTurno').value    = p.turno_cud ? formatTurno(p.turno_cud) : '';
+  document.getElementById('fObs').value      = p.observaciones||'';
+}
+function closeModal() { document.getElementById('formModal').classList.remove('open'); }
+function autoCalcAviso() {
+  const cud = document.getElementById('fCud').value;
+  document.getElementById('fVencimiento').value = subtractDays(cud,30);
+}
+function savePatient() {
+  const nombre = document.getElementById('fNombre').value.trim();
+  if (!nombre) { showToast('⚠️ El nombre es obligatorio'); return; }
+  const cud = document.getElementById('fCud').value.trim();
+  const idx = parseInt(document.getElementById('editIdx').value);
+  const data = {
+    nombre: nombre.toUpperCase(),
+    estado: document.getElementById('fEstado').value,
+    operador: document.getElementById('fOperador').value.trim(),
+    cud, vencimiento: cud?subtractDays(cud,30):'',
+    turno_cud: document.getElementById('fTurno').value.trim(),
+    observaciones: document.getElementById('fObs').value.trim(),
+  };
+  if (idx===-1) { data.id=Date.now(); patients.unshift(data); showToast('✅ Paciente agregado'); }
+  else {
+    const i=patients.findIndex(p=>p.id===idx);
+    if (i>=0) patients[i]={...patients[i],...data};
+    showToast('✅ Paciente actualizado');
+  }
+  savePersist(); closeModal(); updateStats(); renderTable();
+}
+function deletePatient(id) {
+  if (!confirm('¿Eliminar este paciente?')) return;
+  patients = patients.filter(p=>p.id!==id);
+  savePersist(); updateStats(); renderTable();
+  showToast('🗑️ Paciente eliminado');
+}
+
+// ── ALERTA MODAL ──
+function buildAdminMsg() {
+  const urgentes = patients.filter(p => {
+    const d=daysUntil(p.cud);
+    return d!==null&&d>=0&&d<=30&&(p.estado||'').toUpperCase()==='ACTIVO';
+  }).sort((a,b)=>(daysUntil(a.cud)||999)-(daysUntil(b.cud)||999));
+  if (!urgentes.length) return null;
+  const hoy = new Date();
+  const fecha = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+  const lista = urgentes.map(p => {
+    const d=daysUntil(p.cud);
+    const e=d<=7?'🔴':d<=15?'🟠':'🟡';
+    return `${e} ${p.nombre.trim()} — Vence: ${p.cud} (en ${d} días)`;
+  }).join('\n');
+  return `REPORTE SEMANAL CUD — ${fecha}\n\n${urgentes.length} paciente(s) requieren renovación:\n\n${lista}`;
+}
+function openWaModal() {
+  const msg = buildAdminMsg();
+  document.getElementById('waPreviewText').textContent = msg || '✅ No hay vencimientos próximos en los próximos 30 días.';
+  document.getElementById('waModal').classList.add('open');
+}
+function closeWaModal() { document.getElementById('waModal').classList.remove('open'); }
+
+// ── TOAST ──
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// Close on overlay click
+document.getElementById('formModal').addEventListener('click',e=>{ if(e.target===e.currentTarget)closeModal(); });
+document.getElementById('waModal').addEventListener('click',e=>{ if(e.target===e.currentTarget)closeWaModal(); });
+
+// ── INIT ──
+updateStats();
+renderTable();
+</script>
+</body>
+</html>
