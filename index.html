@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestor CUD — Centro Neuros</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
   :root {
     --bg:#faf7f2; --surface:#ffffff; --surface2:#f4f0ea; --border:#e2dbd0;
     --text:#2d2a24; --text-dim:#7a7060; --text-faint:#b8ae9e;
@@ -140,6 +141,7 @@
       <span class="sync-label" id="syncLabel">Conectando...</span>
       <span class="badge-alert" id="alertBadge"></span>
       <button class="btn btn-admin" onclick="openAlertaModal()">Avisar Administracion</button>
+       <button class="btn-outline" onclick="descargarExcel()">⬇ Descargar Excel</button>
       <button class="btn btn-primary" onclick="openModal()">+ Nuevo paciente</button>
     </div>
   </div>
@@ -493,7 +495,29 @@ window.openAlertaModal=openAlertaModal;
 
 function closeAlertaModal() { document.getElementById('alertaModal').classList.remove('open'); }
 window.closeAlertaModal=closeAlertaModal;
-
+function descargarExcel() {
+  if (!patients.length) { showToast('No hay datos para exportar'); return; }
+  const data = patients.map(function(p){
+    return {
+      'Paciente': p.nombre || '',
+      'Estado': p.estado || '',
+      'Operador': p.operador || '',
+      'Vencimiento CUD': p.cud || '',
+      'Dias restantes': daysUntil(p.cud) !== null ? daysUntil(p.cud) : '',
+      'Turno renovacion': p.turno_cud || '',
+      'Observaciones': p.observaciones || ''
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:35},{wch:12},{wch:14},{wch:16},{wch:14},{wch:18},{wch:40}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Pacientes CUD');
+  const hoy = new Date();
+  const fecha = String(hoy.getDate()).padStart(2,'0')+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+hoy.getFullYear();
+  XLSX.writeFile(wb, 'CUD_Alertas_'+fecha+'.xlsx');
+  showToast('Excel descargado');
+}
+window.descargarExcel=descargarExcel;
 function showToast(msg) {
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
